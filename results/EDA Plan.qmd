@@ -1,0 +1,436 @@
+---
+title: "Group3_EDA_ProjectPlan"
+editor: visual
+author: "Daniel Rishea, Maria Granados, Mosaab Saleem "
+format:
+    pdf:
+        embed-resources: true
+---
+
+# Romantic Interest in Speed Dating 
+
+## Introduction
+
+This project investigates the attributes that contribute to *romantic interest* in a speed dating context. The dataset, obtained from OpenML (Speed Dating Dataset; OpenML ID 40536), contains outcomes of speed dating events conducted between 2002 and 2004, including lifestyle and demographic information about both participants.
+
+Previous studies have used this dataset to predict “matches” between participants (Fisman et al., 2006). However, we noted that the experimental design favoured the subject of the date, which provided an unequal number of features compared to their partner. Consequently, we reframed our problem: instead of predicting matches, we aim to predict the **partner’s decision** (binary variable: *decision* = yes/no) regarding whether they would like to meet the subject again.
+
+Specifically, we seek to:
+
+1.  Examine the relationship between **self-reported subject attributes** (how individuals describe themselves) and **partner perceptions** (how those attributes are rated by the partner).
+2.  Compare how these factors differ across **gender**.
+3.  Identify which features most strongly predict *romantic interest* in this context.
+
+## Exploratory Data Analysis
+
+We first completed data cleaning and exploratory data analysis (EDA). This step was essential to ensure we could extract insights from the dataset, to guide the choice of appropriate models and evaluation metrics in line with our problem statement.
+
+### Dataset Description
+
+The original data contained 121 features and 8,378 observations. However, 87.4% of rows contained at least one missing value. The original dataset presented several challenges:
+
+-   High number of missing values in some features.
+
+-   High dimensionality with many overlapping features, resulting in high correlations between many features and target variable.
+
+-   Unclear feature nomenclature. This was a considerable challenge, which required an iterative approach to cross-reference variables with documentation and related literature. Although time-intensive, this was essential to select meaningful features that aligned with our research question.
+
+### Data Cleaning Methodology
+
+To prepare the data for Exploratory Data Analysis (EDA), we completed the following steps:
+
+-   Cross-referenced variables with documentation to keep only relevant variables:
+    -   Removed feature ranges when raw numeric values were already available.
+    -   To avoid data leakage, features directly correlated with the target variable were removed (e.g., “match,” “interest correlation”).
+    -   Dropped irrelevant columns (e.g., “expected,” “happy,” “prob_liked”).
+-   After filtering features, we removed rows with missing values in the remaining dataset. We took this approach to ensure we were retaining as many relevant observations as possible, as the original dataset had 80% missing observations.
+    -   Overall missing values for the relevant features were 57.7%.
+    -   When calculated by column, this was a considerable improvement, with the top three fields with missing values showing less than 15% nulls present.
+
+```{r features_null}
+#| message: false
+#| warning: false
+#| echo: false
+
+library(tidyverse)
+library(gt)
+
+setwd("C:/Users/marvi/My Drive/Projects/Uni Projects/speed-dating-classification")
+
+originalData <- read.csv(
+  file.path(getwd(), "speeddating_raw.csv"),
+  stringsAsFactors = TRUE
+)
+
+my_variable_list <- c(
+  "gender",
+  "d_age",
+  "race",
+  "samerace",
+  "race_o",
+  "attractive_o",
+  "sinsere_o",
+  "intelligence_o",
+  "funny_o",
+  "ambitous_o",
+  "shared_interests_o",
+  "attractive",
+  "sincere",
+  "intelligence",
+  "funny",
+  "ambition",
+  "sports",
+  "tvsports",
+  "exercise",
+  "dining",
+  "museums",
+  "art",
+  "hiking",
+  "gaming",
+  "clubbing",
+  "reading",
+  "tv",
+  "theater",
+  "movies",
+  "concerts",
+  "music",
+  "shopping",
+  "yoga",
+  "decision_o"
+)
+originalData_Clean <- originalData |> select(my_variable_list)
+
+#sum(is.na(originalData_Clean))/nrow(originalData_Clean)
+
+null_counts <- colSums(is.na(originalData_Clean))
+
+# Show null counts as a sorted table
+null_counts <- colSums(is.na(originalData_Clean))
+null_table <- data.frame(
+  Feature = names(null_counts),
+  NullCount = as.integer(null_counts),
+  NullPercent = round((null_counts / nrow(originalData_Clean)) * 100, 2)
+)
+# Show only columns with at least one NA
+null_table <- null_table[null_table$NullCount > 0, ]
+null_table <- null_table[order(-null_table$NullCount), ]
+head(null_table, 3) %>% 
+  gt()
+
+
+
+```
+
+-   Renamed target variable to *decision* for clarity.
+-   Out-of-range values (expected 1–10 scale) were handled using three strategies:
+    1.  Retained values as-is,
+    2.  Removed out-of-range values,
+    3.  Rescaled using min–max transformation.
+
+For the EDA, we retained values as-is to assess their distribution and impact before finalising an approach. Our final cleaned dataset included **33 features and 6,949 observations** (see Appendix for details on the final dataset).
+
+### Target Variable Balance
+
+The dataset is relatively balanced as shown below. As class imbalance is not severe, the risk of class imbalance bias is low which supports the use of accuracy as a baseline evaluation metric, but nuanced metrics (F1, ROC-AUC) will still be important.
+
+```{r features_balance}
+#| message: false
+#| warning: false
+#| echo: false
+
+library(tidyverse)
+library(caret)
+library(gt)
+library(Rtsne)
+
+
+set.seed(42)
+palette_name <- "Red-Green"
+class_colors <- hcl.colors(n = 2, palette = palette_name)
+class_colors_grad <- hcl.colors(n = 10, palette = palette_name)
+
+
+df_dating <- read.csv("C:/Users/marvi/My Drive/Projects/Uni Projects/speed-dating-classification/cleanedData/data_clean.csv", stringsAsFactors = TRUE)
+
+
+df_dating$decision <- factor(df_dating$decision_o)
+df_dating$decision_o <- NULL
+df_dating$samerace <- factor(df_dating$samerace)
+
+class_counts <- df_dating |>
+  count(decision) |>
+  mutate(Percent = round(100 * n / sum(n), 1))   # add percentage
+
+ggplot(class_counts, aes(x = decision, y = n)) +
+  geom_col(show.legend = FALSE, fill = class_colors, alpha = 0.5) +
+  labs(
+    title = "Target Class Balance",
+    x = "Decision to Meet Again (N/Y)",
+    y = "Frequency"
+  ) +
+  geom_text(
+    aes(label = paste0(n, " (", Percent, "%)")),  
+    vjust = -0.4
+  ) +
+  scale_x_discrete(breaks = c("0","1"), labels = c("No","Yes")) +
+  theme_minimal(base_size = 14)
+
+```
+
+### Feature Distributions and Trends
+
+Key insights analysis show:
+
+-   **Gender and characteristics interaction:**
+    -   **Subject self-assessed characteristics:** There is considerable overlap across most traits, with the exception of female partners seemingly favouring male subjects that self-report highly for attractiveness and intelligence, whilst male partners are seemingly less picky. It's interesting to point out that self-ratings by the subject do not seem to have a high effect on the final decision for male partner / female subject pairs, but yes for the female partners..
+
+    -   **Subject's perceived characteristics**: The subject's perceived characteristics by the partner show stronger differentiation, with perceived attractiveness, funny, and shared interest providing a clear indication of a favourable decision. There are some gender differences, with intelligence being a weaker indicator for male partner / female subject pairs, whilst female partners seem to highly regard this trait in comparison to male partners.
+
+    -   **Subject's interests**: The subject's interests also have considerable overlaps, with shopping, hiking, gaming and exercise showing the strongest differentiation. Interestingly, female partners seem to have less favorable views to theatre and tv as interests for male subjects, whilst male partners seemingly having unfavourable views to females with tv sports as an interest.
+
+```{r subject_char_gender}
+#| message: false
+#| warning: false
+#| echo: false
+#| fig-width: 20
+#| fig-height: 15
+
+library(cowplot)
+
+# Density plot function
+plot_kde_grid <- function(feat_subset, subset_name, data = df_dating) {
+   df_dating %>%
+    select(gender, decision, all_of(feat_subset)) %>%
+    pivot_longer(cols = all_of(feat_subset),
+               names_to = "Characteristic",
+               values_to = "Score") %>% 
+    ggplot(aes(x = Score, fill = factor(decision))) +
+    geom_density(adjust = 1.5, alpha = 0.4) +
+    facet_grid(gender ~ Characteristic, scales = "free") +
+    labs(
+      title = paste(subset_name, "by Gender and Partner Decision"),
+      x = "Score",
+      y = "Density",
+      fill = "Partner Decision"
+    ) +
+    theme_minimal(base_size = 12) +
+    theme(legend.position = "bottom") +
+    scale_fill_manual(values = class_colors, labels = c("No","Yes"))
+}
+
+plot_box_grid <- function(feat_subset,subset_name, data=df_dating){
+    df_dating %>%
+    select(gender, decision, all_of(feat_subset)) %>%
+    pivot_longer(cols = all_of(feat_subset),
+               names_to = "Characteristic",
+               values_to = "Score") %>% 
+        ggplot(aes(y = Score ,fill=decision)) +
+            geom_boxplot(alpha = 0.5,linewidth=1) +
+            facet_grid(gender ~ Characteristic, scales = "free") +
+            labs(
+            title = paste(subset_name,"by Gender and Partner Decision"),
+            x = "Feature Name",
+            y = "Density"
+            ) +
+            theme_minimal(base_size = 12) +
+            theme(legend.position = "bottom", axis.text.x = element_blank()) +
+            scale_fill_manual(values = class_colors, labels = c("No","Yes"))
+                
+}
+
+
+partner_self_ratings <- c("attractive_o", "sinsere_o", "intelligence_o", "funny_o", "ambitous_o", "shared_interests_o")
+subject_self_ratings <- c("attractive","sincere","intelligence","funny","ambition")
+interests<- c("sports","tvsports","exercise","dining","museums","art","hiking","gaming","clubbing","reading","tv","theater","movies","concerts","music","shopping","yoga")
+
+plot1 <- plot_kde_grid(subject_self_ratings, "Subject Self-Assessed Characteristics")
+plot2 <- plot_kde_grid(partner_self_ratings, "Subject’s Perceived Characteristics")
+plot3 <- plot_kde_grid(interests, "Subject Interests")
+plot4 <- plot_box_grid(interests, "Subject Interests")
+
+plot_grid(
+  plot1, plot2,
+  plot3, plot4,
+  label_size = 12,
+  ncol = 2, 
+  nrow = 2,
+  rel_widths = c(1,1),
+  rel_heights = c(1, 1),
+  align = "hv"
+)
+```
+
+-   **Gender and race interaction**:
+
+    -   Same-race pairings were more likely to result in “yes” decisions. Male subjects tended to receive more “no” responses overall.
+    -   Male partners showed favourable bias towards female subjects of White or Latina backgrounds, while other groups faced lower acceptance.
+    -   Female partners, appeared more race-conscious when evaluating male subjects, with Asian-American male subjects received a higher proportion of unfavourable responses.
+
+    ```{r gender_}
+    #| message: false
+    #| warning: false
+    #| echo: false
+    #| fig.width: 18
+    #| fig.height: 8
+
+
+    simplify_race <- function(x) {
+      x <- str_trim(as.character(x))
+      fct_collapse(
+        factor(x),
+        "Asian/PI" = c("Asian/Pacific Islander/Asian-American"),
+        "White" = c("European/Caucasian-American"),
+        "Latinx" = c("Latino/Hispanic American"),
+        "Black"= c("Black/African American"),
+        "Other"= c("Other", "?")
+      )
+    }
+
+    df_dating_race <-  df_dating %>% 
+      mutate(
+        race_simple    = simplify_race(race),
+        race_o_simple  = simplify_race(race_o))
+      
+    # Partner's decision by race, faceted by gender
+    plot_decision_by_var <- function(data, var, subsetname) {
+      ggplot(data, aes(x = .data[[var]], fill = factor(decision))) +
+        geom_bar(alpha = 0.5) +
+        facet_wrap(~ gender, scales = "free") +
+        labs(
+          title = paste("Partner's Decision by", subsetname, "and Gender"),
+          x = var,
+          y = "Count",
+          fill = "Decision"
+        ) +
+        theme_minimal(base_size = 12) +
+        theme(axis.text.x = element_text(angle = 45, hjust = 1), legend.position = "bottom") +
+        scale_fill_manual(values = class_colors, labels = c("No", "Yes"))
+    }
+
+
+    plot1 <- plot_decision_by_var(df_dating_race, "race_simple", "Subject's Race")
+    plot2 <- plot_decision_by_var(df_dating_race, "samerace", "Same Race")
+
+    gender_counts <- df_dating |>
+      count(gender, decision) |>
+      group_by(gender) |>
+      mutate(Percent = round(100 * n / sum(n), 1))
+
+    plot3 <- ggplot(gender_counts, aes(x = gender, y = n, fill = factor(decision))) +
+      geom_col(position = "dodge", alpha = 0.6) +
+      geom_text(
+        aes(label = paste0(n, " (", Percent, "%)")),
+        position = position_dodge(width = 0.9),
+        vjust = -0.4,
+        size = 3
+      ) +
+      labs(
+        title = "Parner's Decision by Subject's Gender",
+        x = "Gender",
+        y = "Count",
+        fill = "Decision"
+      ) +
+      theme( legend.position = "bottom") +
+      scale_fill_manual(values = class_colors, labels = c("No","Yes")) +
+      theme_minimal(base_size = 12) +
+        theme(legend.position = "bottom")
+      
+      
+    plot_grid(
+      plot1, plot2, plot3,
+      ncol = 3, 
+      nrow = 1,
+      align = "h"
+    )
+    ```
+
+### Outliers
+
+Boxplots reveal several potential outliers beyond the interquartile range, especially in self reported ratings (1-10 scales with values outside the range).
+
+-   Models sensitive to outliers (e.g., Logistic Regression, LDA) may be adversely affected.
+
+-   Tree based models and ensemble methods are more robust to outliers and will be targeted as part of the project.
+
+```{r outliers}
+#| message: false
+#| warning: false
+#| echo: false
+#| fig.width: 18
+#| fig.height: 8
+
+
+plot1 <- plot_box_grid(subject_self_ratings,"Subject's Self-Assessed Characteristics")
+plot2 <- plot_box_grid(partner_self_ratings,"Subject's Perceived Characteristics")
+plot3 <- plot_box_grid(interests,"Subject Interests")
+  
+  
+plot_grid(
+  plot1, plot2, plot3,
+  ncol = 3, 
+  nrow = 1
+)
+```
+
+### Normality
+
+The assumption of multivariate normality is violated. Predictors show high skewness, heavy tails, and multimodality. These characteristics limit the applicability of parametric models such as LDA, and favour non-parametric models such as tree based and ensemble methods, kNN and SVM may better capture nonlinear relationships, though kNN is sensitive to high dimensionality.
+
+## Classification Implementation Plan
+
+We have completed data cleaning & wrangling, as well as EDA.
+
+Next steps are as follows.
+
+(show in visual: For high dimensional data, can you plot the data in a lower dimension for visualization purpose (e.g. PCA plots))
+
+### Evaluation Metrics
+
+Given the balanced dataset, **accuracy** will serve as our primary metric. However, to better capture nuances, we will also consider:
+
+-   **Log Loss**: Penalizes confident but incorrect predictions.
+-   **ROC-AUC**: Evaluates overall discriminatory ability across thresholds.
+
+### Modelling Approach
+
+Based on the EDA, we will perform the following models in order of suitability:
+
+-   **Random forest:** easy to interpret, and tune to prevent overfitting. This will be highly regarded as
+-   **Trees**: easy to interpret but prone to overfitting, which would mean that we would need to include hyperparameter tuning to reduce overfitting.
+-   **Logistic Regression**: May remain effective given the large sample size, despite assumption violations.
+-   **LDA**: Likely underperform due to non-normality and outliers.
+-   **kNN & SVM**: Better suited for non-linear boundaries but challenged by class overlap and dimensionality. kNN is also computationally expensive for large datasets (must compute distance to all training points) and is sensitive to high dimensions and irrelevant features. Sensitive to feature scaling (distance-based). No model coefficients or interpretability which will has lowered this in terms of suitability as we're hoping to interpret features relations to gain insights from the model.
+-   **Boosting**: sequentially corrects errors; XGBoost adds regularisation.
+-   We will Compare models, SHAP values/feature importances for interpretation.
+
+## Appendix
+
+### Feature Names
+
+```{r features_list}
+#| message: false
+#| warning: false
+#| echo: false
+
+library(tidyverse)
+library(gt)
+
+setwd("C:/Users/marvi/My Drive/Projects/Uni Projects/speed-dating-classification")
+
+df_dating_features <- read.csv(
+  file.path(getwd(), "data", "feature_dictionary.csv"),
+  stringsAsFactors = TRUE
+)
+
+
+df_dating_features %>% 
+  filter(Keep == 'y') %>% 
+  select(Variable.Group, Variable.Name, Variable.Description) %>% 
+  gt()
+```
+
+## References
+
+-   Fisman, R., Iyengar, S. S., Kamenica, E., & Simonson, I. (2006). Gender differences in mate selection: Evidence from a speed dating experiment. *The Quarterly Journal of Economics, 121*(2), 673–697. <https://doi.org/10.1162/qjec.2006.121.2.673>
+
+-   OpenML. (n.d.). *Speed Dating Dataset (ID 40536)*. Retrieved August 30, 2025, from <https://www.openml.org/search?type=data&sort=version&status=any&order=asc&exact_name=SpeedDating&id=40536>

@@ -1,0 +1,96 @@
+This is XeTeX, Version 3.14159265-2.6-0.999992 (MiKTeX 20.6.29) (preloaded format=xelatex 2025.8.30)  30 AUG 2025 20:25
+entering extended mode
+**./EDA-Plan.tex
+(EDA-Plan.tex
+LaTeX2e <2020-02-02> patch level 5
+L3 programming layer <2020-05-15>
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/koma-script\scrart
+cl.cls"
+Document Class: scrartcl 2025/06/04 v3.45 KOMA-Script document class (article)
+
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/koma-script\scrkba
+se.sty"
+
+LaTeX Warning: You have requested release `2022/06/01' of LaTeX,
+               but only release `2020-02-02' is available.
+
+Package: scrkbase 2025/06/04 v3.45 KOMA-Script package (KOMA-Script-dependent b
+asics and keyval usage)
+
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/koma-script\scrbas
+e.sty"
+
+LaTeX Warning: You have requested release `2022/06/01' of LaTeX,
+               but only release `2020-02-02' is available.
+
+Package: scrbase 2025/06/04 v3.45 KOMA-Script package (KOMA-Script-independent 
+basics and keyval usage)
+
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/koma-script\scrlfi
+le.sty"
+Package: scrlfile 2025/06/04 v3.45 KOMA-Script package (file load hooks)
+
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/koma-script\scrlfi
+le-patcholdlatex.sty"
+Package: scrlfile-patcholdlatex 2025/06/04 v3.45 KOMA-Script package (patching 
+old LaTeX kernels)
+
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/koma-script\scrlog
+o.sty"
+Package: scrlogo 2025/06/04 v3.45 KOMA-Script package (logo)
+))
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/l3packages/xparse\
+xparse.sty" ("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/l3kern
+el\expl3.sty"
+Package: expl3 2020-05-15 L3 programming layer (loader) 
+
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/l3backend\l3backen
+d-xdvipdfmx.def"
+File: l3backend-xdvipdfmx.def 2020-05-05 L3 backend support: xdvipdfmx
+\g__graphics_track_int=\count163
+\l__pdf_internal_box=\box45
+\g__pdf_backend_object_int=\count164
+\g__pdf_backend_annotation_int=\count165
+))
+Package: xparse 2020-05-15 L3 Experimental document command parser
+
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/l3packages/xparse\
+xparse-generic.tex"
+\l__xparse_current_arg_int=\count166
+\g__xparse_grabber_int=\count167
+\l__xparse_m_args_int=\count168
+\l__xparse_v_nesting_int=\count169
+)))
+("C:\Users\marvi\AppData\Local\Programs\MiKTeX 2.9\tex/latex/graphics\keyval.st
+y"
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks15
+)
+Skipping: [2021/05/01] Usage of raw or classic option list on input line 254.
+Applying: [0000/00/00] Usage of raw or classic option list on input line 370.
+)
+
+! Class scrartcl Error: LaTeX kernel too old!
+(scrartcl)              This version of KOMA-Script requires at least
+(scrartcl)              LaTeX 2022-06-01.
+(scrartcl)              You need to either use an older version of
+(scrartcl)              KOMA-Script or update your LaTeX kernel.
+(scrartcl)              Sorry, but this error is fatal.
+(scrartcl)              You cannot continue. Aborting LaTeX run.
+
+See the scrartcl class documentation for explanation.
+Type  H <return>  for immediate help.
+ ...                                              
+                                                  
+l.104 }
+        
+Here is how much of TeX's memory you used:
+ 1031 strings out of 414076
+ 24766 string characters out of 2893956
+ 281568 words of memory out of 3000000
+ 18735 multiletter control sequences out of 15000+200000
+ 532338 words of font info for 24 fonts, out of 3000000 for 9000
+ 1348 hyphenation exceptions out of 8191
+ 68i,0n,62p,304b,20s stack positions out of 5000i,500n,10000p,200000b,50000s
+
+No pages of output.
